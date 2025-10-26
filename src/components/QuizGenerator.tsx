@@ -29,8 +29,8 @@ export function QuizGenerator() {
   const [userAnswers, setUserAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
 
-  const DIFY_API_KEY = 'app-6yVOqysHPGOIH3oQgSFQ9cck';
-  const DIFY_WORKFLOW_URL = 'https://api.dify.ai/v1/workflows/run';
+  const DIFY_API_KEY = (import.meta as any).env.VITE_QUIZ_GENERATOR_ID;
+  const DIFY_WORKFLOW_URL = (import.meta as any).env.VITE_DIFY_BASE_URL;
 
   const generateQuiz = async () => {
     setLoading(true);

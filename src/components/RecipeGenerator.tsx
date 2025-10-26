@@ -29,16 +29,15 @@ export function RecipeGenerator({ onRecipeGenerated }: { onRecipeGenerated: (rec
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(false);
   // ワークフローごとにAPIキーとIDを環境変数から取得
-  const RECIPE_API_KEY = (import.meta as any).env.VITE_RECIPE_GENERATOR_API_KEY;
   const RECIPE_WORKFLOW_ID = (import.meta as any).env.VITE_RECIPE_GENERATOR_ID;
   const DIFY_BASE_URL = (import.meta as any).env.VITE_DIFY_BASE_URL;
 
   const generateRecipe = async (dish: string): Promise<Recipe> => {
-    const response = await fetch('https://api.dify.ai/v1/workflows/run', {
+    const response = await fetch(DIFY_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer app-FmRp38fdrhYof8OU9eGFiMby`
+        'Authorization': `Bearer ${RECIPE_WORKFLOW_ID}`
       },
       body: JSON.stringify({
         "inputs": {
