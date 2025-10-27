@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
-import { RecipeGenerator } from './components/RecipeGenerator';
+import { RecipeGenerator, type Recipe } from './components/RecipeGenerator';
 import { QuizGenerator } from './components/QuizGenerator';
 import { ChefHat, BookOpen } from 'lucide-react';
 
 export default function App() {
-  const [currentRecipe, setCurrentRecipe] = useState(null);
+  const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">

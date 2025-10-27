@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
 import { Loader2, BrainCircuit, Sparkles } from 'lucide-react';
+import { Progress } from './ui/progress';
 
 // Difyから返されるクイズの型定義
 interface QuizItem {
@@ -25,9 +26,26 @@ interface Word {
 
 export function QuizGenerator() {
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [userAnswers, setUserAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    if (loading) {
+      setProgress(10);
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + 5;
+        });
+      }, 400);
+      return () => clearInterval(interval);
+    }
+  }, [loading]);
 
   const DIFY_API_KEY = (import.meta as any).env.VITE_QUIZ_GENERATOR_ID;
   const DIFY_WORKFLOW_URL = (import.meta as any).env.VITE_DIFY_BASE_URL;
@@ -71,11 +89,19 @@ export function QuizGenerator() {
       }
 
       const result = await response.json();
-      console.log("Dify API response:", JSON.stringify(result, null, 2));
       
       // Difyの出力キー 'quiz' を直接参照します
       if (result && result.data && result.data.outputs && result.data.outputs.quiz) {
-        const generatedQuiz = result.data.outputs.quiz;
+        let generatedQuiz = result.data.outputs.quiz;
+        // Difyの出力が文字列化されたJSONの場合も考慮します。
+        if (typeof generatedQuiz === 'string') {
+          try {
+            generatedQuiz = JSON.parse(generatedQuiz);
+          } catch (e) {
+            console.error("Failed to parse quiz JSON string:", e);
+            throw new Error("Failed to parse quiz from Dify response.");
+          }
+        }
         setQuizData(generatedQuiz);
       } else {
         throw new Error('Unexpected API response structure from Dify.');
@@ -139,7 +165,13 @@ export function QuizGenerator() {
         </Button>
       </CardHeader>
       <CardContent>
-        {quizData && (
+        {loading && (
+            <div className="flex flex-col items-center justify-center py-12">
+                <p className="mb-4 text-gray-600">Generating your personalized quiz...</p>
+                <Progress value={progress} className="w-3/4" />
+            </div>
+        )}
+        {!loading && quizData && (
           <div className="space-y-6">
             {quizData.quiz.map((item, qIndex) => (
               <div key={qIndex}>

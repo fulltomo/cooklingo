@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -7,6 +7,7 @@ import { Separator } from './ui/separator';
 import { Clock, TrendingUp, ChefHat, Lightbulb, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../supabaseClient';
+import { Progress } from './ui/progress';
 
 interface Vocabulary {
   word: string;
@@ -14,7 +15,7 @@ interface Vocabulary {
   partOfSpeech: string;
 }
 
-interface Recipe {
+export interface Recipe {
   dish: string;
   cookingTime: string;
   difficulty: string;
@@ -28,6 +29,24 @@ export function RecipeGenerator({ onRecipeGenerated }: { onRecipeGenerated: (rec
   const [dishInput, setDishInput] = useState('');
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (loading) {
+      setProgress(0);
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + 5;
+        });
+      }, 400);
+      return () => clearInterval(interval);
+    }
+  }, [loading]);
+  
   // ワークフローごとにAPIキーとIDを環境変数から取得
   const RECIPE_WORKFLOW_ID = (import.meta as any).env.VITE_RECIPE_GENERATOR_ID;
   const DIFY_BASE_URL = (import.meta as any).env.VITE_DIFY_BASE_URL;
@@ -181,6 +200,7 @@ export function RecipeGenerator({ onRecipeGenerated }: { onRecipeGenerated: (rec
               {loading ? 'Generating...' : 'Generate'}
             </Button>
           </form>
+          {loading && <Progress value={progress} className="w-full mt-4" />}
         </CardContent>
       </Card>
 
