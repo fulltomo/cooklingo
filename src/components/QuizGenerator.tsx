@@ -210,7 +210,7 @@ export function QuizGenerator() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
                 <BrainCircuit className="w-6 h-6 text-blue-500" />
@@ -219,7 +219,7 @@ export function QuizGenerator() {
             <div className="flex items-center gap-2">
                 <label htmlFor="difficulty-select" className="text-sm text-gray-600">Difficulty:</label>
                 <Select value={difficulty} onValueChange={(value: 'basic' | 'advanced') => setDifficulty(value)}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
                     <SelectContent>

@@ -194,7 +194,7 @@ export function RecipeGenerator({ onRecipeGenerated }: { onRecipeGenerated: (rec
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="flex gap-3">
+          <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3">
             <Input
               placeholder="e.g., カレーライス, オムライス, パスタ..."
               value={dishInput}

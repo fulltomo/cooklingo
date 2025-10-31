@@ -1,10 +1,11 @@
 import React from 'react';
 
 const ChatGenerator: React.FC = () => {
+  const chatbotUrl = import.meta.env.VITE_CHATBOT_URL;
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <iframe
-        src="https://chiba-u-ai25-g4.xvps.jp/chatbot/1Ft7aa6uABv76n8J"
+        src={chatbotUrl}
         style={{ width: '100%', height: '100%', minHeight: '700px' }}
         frameBorder="0"
         allow="microphone"
