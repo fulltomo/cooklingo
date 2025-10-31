@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { RecipeGenerator, type Recipe } from './components/RecipeGenerator';
 import { QuizGenerator } from './components/QuizGenerator';
-import { ChefHat, BookOpen } from 'lucide-react';
+import ChatGenerator from './components/ChatGenerator';
+import { ChefHat, BookOpen, MessageCircle } from 'lucide-react';
 
 export default function App() {
   const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
@@ -14,7 +15,7 @@ export default function App() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <ChefHat className="w-10 h-10 text-orange-500" />
-            <h1 className="text-orange-600">CookLingo</h1>
+            <h1 className="text-4xl font-bold text-orange-600">CookLingo</h1>
           </div>
           <p className="text-gray-600">
             Learn English while discovering delicious recipes!
@@ -26,7 +27,10 @@ export default function App() {
 
         {/* Main Content */}
         <Tabs defaultValue="recipe" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsList 
+            className="w-full mb-8 bg-muted text-muted-foreground items-center justify-center rounded-xl"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}
+          >
             <TabsTrigger value="recipe" className="flex items-center gap-2">
               <ChefHat className="w-4 h-4" />
               Recipe Suggestion
@@ -34,6 +38,10 @@ export default function App() {
             <TabsTrigger value="quiz" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
               Vocabulary Quiz
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              Chat
             </TabsTrigger>
           </TabsList>
 
@@ -43,6 +51,10 @@ export default function App() {
 
           <TabsContent value="quiz">
             <QuizGenerator />
+          </TabsContent>
+
+          <TabsContent value="chat">
+            <ChatGenerator />
           </TabsContent>
         </Tabs>
       </div>
