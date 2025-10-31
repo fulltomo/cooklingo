@@ -4,10 +4,11 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
-import { Clock, TrendingUp, ChefHat, Lightbulb, BookOpen } from 'lucide-react';
+import { Clock, TrendingUp, ChefHat, Lightbulb, BookOpen, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../supabaseClient';
 import { Progress } from './ui/progress';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 interface Vocabulary {
   word: string;
@@ -211,8 +212,16 @@ export function RecipeGenerator({ onRecipeGenerated }: { onRecipeGenerated: (rec
       </Card>
 
       {recipe && (
-        <Card>
-          <CardHeader>
+        <div className="space-y-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Heads up!</AlertTitle>
+            <AlertDescription>
+              This recipe is AI-generated. Please use your judgment and consult reliable sources, especially if you have allergies or dietary restrictions.
+            </AlertDescription>
+          </Alert>
+          <Card>
+            <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <ChefHat className="w-6 h-6 text-orange-500" />
               {recipe.dish}
@@ -307,6 +316,7 @@ export function RecipeGenerator({ onRecipeGenerated }: { onRecipeGenerated: (rec
             </div>
           </CardContent>
         </Card>
+        </div>
       )}
     </div>
   );
