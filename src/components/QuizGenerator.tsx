@@ -6,13 +6,24 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { toast } from 'sonner';
 import { Loader2, BrainCircuit, Sparkles } from 'lucide-react';
 import { Progress } from './ui/progress';
+import { Input } from './ui/input';
 
 // Difyから返されるクイズの型定義
-interface QuizItem {
+type MultipleChoiceQuiz = {
+  type: 'multiple-choice';
   question: string;
   choices: string[];
-  correct_answer_index: number;
-}
+  answer: string;
+};
+
+type FillInTheBlankQuiz = {
+  type: 'fill-in-the-blank';
+  question: string;
+  answer: string;
+  choices?: undefined;
+};
+
+type QuizItem = MultipleChoiceQuiz | FillInTheBlankQuiz;
 
 interface QuizData {
   quiz: QuizItem[];
@@ -32,7 +43,7 @@ export function QuizGenerator() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
-  const [userAnswers, setUserAnswers] = useState<number[]>([]);
+  const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [difficulty, setDifficulty] = useState<'basic' | 'advanced'>('basic');
 
@@ -92,7 +103,7 @@ export function QuizGenerator() {
 
       const wordList = selectedWords.map((w: Word) => `${w.word} (${w.translation})`).join('\n');
 
-      // 2. Dify APIを呼び出してクイズを生成
+      // 4. Dify APIを呼び出してクイズを生成
       const response = await fetch(DIFY_WORKFLOW_URL, {
         method: 'POST',
         headers: {
@@ -114,10 +125,8 @@ export function QuizGenerator() {
 
       const result = await response.json();
       
-      // Difyの出力キー 'quiz' を直接参照します
       if (result && result.data && result.data.outputs && result.data.outputs.quiz) {
         let generatedQuiz = result.data.outputs.quiz;
-        // Difyの出力が文字列化されたJSONの場合も考慮します。
         if (typeof generatedQuiz === 'string') {
           try {
             generatedQuiz = JSON.parse(generatedQuiz);
@@ -127,14 +136,15 @@ export function QuizGenerator() {
           }
         }
 
-        // Shuffle choices for each question
+        // Shuffle choices for multiple-choice questions
         generatedQuiz.quiz.forEach((item: QuizItem) => {
-            const correctAnswer = item.choices[item.correct_answer_index];
-            item.choices.sort(() => Math.random() - 0.5);
-            item.correct_answer_index = item.choices.indexOf(correctAnswer);
+            if (item.type === 'multiple-choice') {
+                item.choices.sort(() => Math.random() - 0.5);
+            }
         });
 
         setQuizData(generatedQuiz);
+        setUserAnswers(new Array(generatedQuiz.quiz.length).fill(''));
       } else {
         throw new Error('Unexpected API response structure from Dify.');
       }
@@ -148,35 +158,54 @@ export function QuizGenerator() {
     }
   };
 
-  const handleAnswerSelect = (questionIndex: number, choiceIndex: number) => {
+  const handleAnswerChange = (questionIndex: number, answer: string) => {
     const newAnswers = [...userAnswers];
-    newAnswers[questionIndex] = choiceIndex;
+    newAnswers[questionIndex] = answer;
     setUserAnswers(newAnswers);
   };
 
   const handleSubmitQuiz = () => {
-    if (userAnswers.filter(a => a !== undefined).length !== quizData?.quiz.length) {
+    if (userAnswers.filter(a => a && a.trim() !== '').length !== quizData?.quiz.length) {
         toast.warning('Please answer all questions.');
         return;
     }
     setShowResults(true);
   };
 
-  const getChoiceVariant = (questionIndex: number, choiceIndex: number): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' => {
+  const getChoiceVariant = (questionIndex: number, choice: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' => {
+    const question = quizData!.quiz[questionIndex] as MultipleChoiceQuiz;
     if (!showResults) {
-        return userAnswers[questionIndex] === choiceIndex ? 'secondary' : 'outline';
+        return userAnswers[questionIndex] === choice ? 'secondary' : 'outline';
     }
-    const isCorrect = quizData!.quiz[questionIndex].correct_answer_index === choiceIndex;
+    const isCorrect = question.answer === choice;
     if (isCorrect) return 'success';
 
-    const isUserChoice = userAnswers[questionIndex] === choiceIndex;
+    const isUserChoice = userAnswers[questionIndex] === choice;
     if (isUserChoice) return 'destructive';
 
     return 'outline';
   }
 
+  const getFillInTheBlankInputClass = (questionIndex: number) => {
+    const question = quizData!.quiz[questionIndex] as FillInTheBlankQuiz;
+    const userAnswer = userAnswers[questionIndex];
+    if (!userAnswer) return 'border-destructive'; // Unanswered
+
+    const isCorrect = userAnswer.trim().toLowerCase() === question.answer.toLowerCase();
+    return isCorrect ? 'border-green-500 focus-visible:ring-green-500' : 'border-destructive focus-visible:ring-destructive';
+  }
+
   const score = quizData?.quiz.reduce((acc, question, index) => {
-    return acc + (question.correct_answer_index === userAnswers[index] ? 1 : 0);
+    const userAnswer = userAnswers[index];
+    if (!userAnswer) return acc;
+
+    let isCorrect = false;
+    if (question.type === 'multiple-choice') {
+      isCorrect = question.answer === userAnswer;
+    } else { // fill-in-the-blank
+      isCorrect = userAnswer.trim().toLowerCase() === question.answer.toLowerCase();
+    }
+    return acc + (isCorrect ? 1 : 0);
   }, 0) || 0;
 
   return (
@@ -220,19 +249,54 @@ export function QuizGenerator() {
             {quizData.quiz.map((item, qIndex) => (
               <div key={qIndex}>
                 <p className="font-semibold mb-3">{qIndex + 1}. {item.question}</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {item.choices.map((choice, cIndex) => (
-                    <Button
-                      key={cIndex}
-                      variant={getChoiceVariant(qIndex, cIndex)}
-                      onClick={() => handleAnswerSelect(qIndex, cIndex)}
+                {item.type === 'multiple-choice' ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {item.choices.map((choice, cIndex) => (
+                      <Button
+                        key={cIndex}
+                        variant={getChoiceVariant(qIndex, choice)}
+                        onClick={() => handleAnswerChange(qIndex, choice)}
+                        disabled={showResults}
+                        className="justify-start p-6 text-left h-auto whitespace-normal"
+                      >
+                        {choice}
+                      </Button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      type="text"
+                      value={userAnswers[qIndex] || ''}
+                      onChange={(e) => handleAnswerChange(qIndex, e.target.value)}
                       disabled={showResults}
-                      className="justify-start p-6 text-left h-auto whitespace-normal"
-                    >
-                      {choice}
-                    </Button>
-                  ))}
-                </div>
+                      className={showResults ? getFillInTheBlankInputClass(qIndex) : ''}
+                      placeholder="Type your answer..."
+                    />
+                    {showResults && (() => {
+                      const userAnswer = userAnswers[qIndex] || "";
+                      const isCorrect = userAnswer.trim().toLowerCase() === (item as FillInTheBlankQuiz).answer.toLowerCase();
+                      if (isCorrect) {
+                        return (
+                          <p className="text-sm font-medium text-green-600">
+                            Correct! The answer is "{item.answer}".
+                          </p>
+                        );
+                      } else {
+                        return (
+                          <div>
+                            <p className="text-sm font-medium text-red-600">
+                              Your answer: "{userAnswer || ''}"
+                            </p>
+                            <p className="text-sm font-medium text-green-600">
+                              Correct answer: "{item.answer}"
+                            </p>
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
             ))}
             
