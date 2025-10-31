@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select';
 import { toast } from 'sonner';
 import { Loader2, BrainCircuit, Sparkles } from 'lucide-react';
 import { Progress } from './ui/progress';
@@ -22,6 +23,9 @@ interface Word {
   id: number;
   word: string;
   translation: string;
+  recognition: number;
+  frequency: number;
+  simplicity: number;
 }
 
 export function QuizGenerator() {
@@ -30,6 +34,7 @@ export function QuizGenerator() {
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [userAnswers, setUserAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [difficulty, setDifficulty] = useState<'basic' | 'advanced'>('basic');
 
   useEffect(() => {
     if (loading) {
@@ -57,16 +62,35 @@ export function QuizGenerator() {
     setShowResults(false);
 
     try {
-      // 1. Supabaseからランダムに5つの単語を取得
-      const { data: words, error: rpcError } = await supabase.rpc('get_random_words', {
-        limit_count: 5,
-      });
+      // 1. Supabaseから単語を取得
+      const { data: allWords, error: fetchError } = await supabase
+        .from('words')
+        .select('id, word, translation, recognition, frequency, simplicity');
 
-      if (rpcError || !words || words.length < 5) {
-        throw new Error('Failed to fetch random words from database.');
+      if (fetchError || !allWords) {
+        throw new Error('Failed to fetch words from database.');
       }
 
-      const wordList = words.map((w: Word) => `${w.word} (${w.translation})`).join('\n');
+      // 2. 難易度で単語をフィルタリング
+      const filteredWords = allWords.filter(word => {
+        const score = (word.recognition || 0) + (word.frequency || 0) + (word.simplicity || 0);
+        if (difficulty === 'basic') {
+          return score >= 12;
+        } else { // advanced
+          return score <= 11;
+        }
+      });
+
+      if (filteredWords.length < 5) {
+        toast.warning(`Not enough ${difficulty} words to generate a quiz. Please add more words.`);
+        setLoading(false);
+        return;
+      }
+
+      // 3. フィルタリングされた単語からランダムに5つ選択
+      const selectedWords = filteredWords.sort(() => 0.5 - Math.random()).slice(0, 5);
+
+      const wordList = selectedWords.map((w: Word) => `${w.word} (${w.translation})`).join('\n');
 
       // 2. Dify APIを呼び出してクイズを生成
       const response = await fetch(DIFY_WORKFLOW_URL, {
@@ -155,6 +179,18 @@ export function QuizGenerator() {
                 <BrainCircuit className="w-6 h-6 text-blue-500" />
                 Vocabulary Quiz
             </CardTitle>
+            <div className="flex items-center gap-2">
+                <label htmlFor="difficulty-select" className="text-sm text-gray-600">Difficulty:</label>
+                <Select value={difficulty} onValueChange={(value: 'basic' | 'advanced') => setDifficulty(value)}>
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Select difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
         <Button onClick={generateQuiz} disabled={loading}>
           {loading ? (

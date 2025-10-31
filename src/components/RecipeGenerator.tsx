@@ -13,6 +13,9 @@ interface Vocabulary {
   word: string;
   translation: string;
   partOfSpeech: string;
+  recognition: number;
+  frequency: number;
+  simplicity: number;
 }
 
 export interface Recipe {
@@ -132,6 +135,9 @@ export function RecipeGenerator({ onRecipeGenerated }: { onRecipeGenerated: (rec
         const wordsToUpsert = recipe.vocabulary.map(v => ({
           word: v.word,
           translation: v.translation,
+          recognition: v.recognition,
+          frequency: v.frequency,
+          simplicity: v.simplicity,
         }));
 
         // Upsert the words. If a word already exists, it will be ignored.
