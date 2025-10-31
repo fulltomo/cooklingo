@@ -126,6 +126,14 @@ export function QuizGenerator() {
             throw new Error("Failed to parse quiz from Dify response.");
           }
         }
+
+        // Shuffle choices for each question
+        generatedQuiz.quiz.forEach((item: QuizItem) => {
+            const correctAnswer = item.choices[item.correct_answer_index];
+            item.choices.sort(() => Math.random() - 0.5);
+            item.correct_answer_index = item.choices.indexOf(correctAnswer);
+        });
+
         setQuizData(generatedQuiz);
       } else {
         throw new Error('Unexpected API response structure from Dify.');
@@ -154,12 +162,12 @@ export function QuizGenerator() {
     setShowResults(true);
   };
 
-  const getChoiceVariant = (questionIndex: number, choiceIndex: number): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  const getChoiceVariant = (questionIndex: number, choiceIndex: number): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' => {
     if (!showResults) {
         return userAnswers[questionIndex] === choiceIndex ? 'secondary' : 'outline';
     }
     const isCorrect = quizData!.quiz[questionIndex].correct_answer_index === choiceIndex;
-    if (isCorrect) return 'default';
+    if (isCorrect) return 'success';
 
     const isUserChoice = userAnswers[questionIndex] === choiceIndex;
     if (isUserChoice) return 'destructive';
